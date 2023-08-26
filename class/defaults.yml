@@ -1,0 +1,4 @@
+parameters:
+  nextcloud:
+    =_metadata: {}
+    namespace: syn-nextcloud
