@@ -1,11 +1,11 @@
 parameters:
   kapitan:
-    dependencies:
-      - type: helm
-        source: ${nextcloud:charts:nextcloud:source}
-        chart_name: nextcloud
-        version: ${nextcloud:charts:nextcloud:version}
-        output_path: ${_base_directory}/helmcharts/nextcloud/${nextcloud:charts:nextcloud:version}/
+    # dependencies:
+    #   - type: helm
+    #     source: ${nextcloud:charts:nextcloud:source}
+    #     chart_name: nextcloud
+    #     version: ${nextcloud:charts:nextcloud:version}
+    #     output_path: ${_base_directory}/helmcharts/nextcloud/${nextcloud:charts:nextcloud:version}/
     compile:
       - input_paths:
           - ${_base_directory}/component/app.jsonnet
@@ -15,19 +15,19 @@ parameters:
           - ${_base_directory}/component/main.jsonnet
         input_type: jsonnet
         output_path: nextcloud/
-      # Helmchart
-      - input_paths:
-          - ${_base_directory}/helmcharts/nextcloud/${nextcloud:charts:nextcloud:version}
-        input_type: helm
-        output_path: nextcloud/10_helmchart
-        helm_values: ${nextcloud:helmValues}
-        helm_params:
-          name: nextcloud
-          namespace: ${nextcloud:namespace}
-          dependency_update: true
-  commodore:
-    postprocess:
-      filters:
-        - type: jsonnet
-          path: nextcloud/10_helmchart/nextcloud/templates
-          filter: postprocess/patch_labels.jsonnet
+      # # Helmchart
+      # - input_paths:
+      #     - ${_base_directory}/helmcharts/nextcloud/${nextcloud:charts:nextcloud:version}
+      #   input_type: helm
+      #   output_path: nextcloud/10_helmchart
+      #   helm_values: ${nextcloud:helmValues}
+      #   helm_params:
+      #     name: nextcloud
+      #     namespace: ${nextcloud:namespace}
+      #     dependency_update: true
+  # commodore:
+  #   postprocess:
+  #     filters:
+  #       - type: jsonnet
+  #         path: nextcloud/10_helmchart/nextcloud/templates
+  #         filter: postprocess/patch_labels.jsonnet

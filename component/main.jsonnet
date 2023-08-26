@@ -5,17 +5,84 @@ local prom = import 'lib/prometheus.libsonnet';
 local inv = kap.inventory();
 // The hiera parameters for the component
 local params = inv.parameters.nextcloud;
+local appName = 'nextcloud';
 local hasPrometheus = std.member(inv.applications, 'prometheus');
 
 local namespace = kube.Namespace(params.namespace) {
-//   metadata+: {
-//     labels+: {
-//       'pod-security.kubernetes.io/enforce': 'restricted',
-//     },
-//   },
+  //   metadata+: {
+  //     labels+: {
+  //       'pod-security.kubernetes.io/enforce': 'restricted',
+  //     },
+  //   },
+};
+
+
+// PersistentVolumeClaims
+
+local pvc = [
+  kube.PersistentVolumeClaim(appName + '-config') {
+    storage: '10Gi',
+    storageClass: 'ceph-block',
+  },
+  kube.PersistentVolumeClaim(appName + '-data') {
+    storage: '10Gi',
+    storageClass: 'ceph-block',
+  },
+];
+
+
+// Deployment
+
+local deployment = kube.Deployment(appName) {
+  spec+: {
+    replicas: params.replicaCount,
+    template+: {
+      spec+: {
+        serviceAccountName: 'default',
+        // securityContext: {
+        //   seccompProfile: { type: 'RuntimeDefault' },
+        // },
+        containers_:: {
+          default: kube.Container(appName) {
+            image: '%(registry)s/%(repository)s:%(tag)s' % params.images.nextcloud,
+            env_:: {
+              PUID: 1000,
+              PGID: 1000,
+              TZ: 'Etc/UTC',
+            },
+            ports_:: {
+              http: { containerPort: 80 },
+            },
+            resources: params.resources,
+            // securityContext: {
+            //   allowPrivilegeEscalation: false,
+            //   capabilities: { drop: [ 'ALL' ] },
+            // },
+            volumeMounts_:: {
+              config: { mountPath: '/config' },
+              data: { mountPath: '/data' },
+            },
+            // livenessProbe: {
+            //   httpGet: {
+            //     scheme: 'HTTP',
+            //     port: 'http',
+            //     path: '/-/healthy',
+            //   },
+            // },
+          },
+        },
+        volumes_:: {
+          config: kube.PersistentVolumeClaimVolume(pvc[0]),
+          data: kube.PersistentVolumeClaimVolume(pvc[1]),
+        },
+      },
+    },
+  },
 };
 
 // Define outputs below
 {
   '00_namespace': if hasPrometheus then prom.RegisterNamespace(namespace) else namespace,
+  '10_pvc': pvc,
+  '10_deployment': deployment,
 }

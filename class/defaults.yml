@@ -4,58 +4,12 @@ parameters:
 
     namespace: syn-nextcloud
 
-    charts:
+    images:
       nextcloud:
-        source: https://nextcloud.github.io/helm
-        version: v4.1.0
+        registry: docker.io
+        repository: linuxserver/nextcloud
+        tag: 27.0.2
 
-    admin:
-      user: admin
-      password: changeme
+    replicaCount: 1
 
-    ingress:
-      host: nextcloud.kube.home
-
-    mail:
-      enabled: false
-      fromAddress: user
-      domain: domain.com
-      smtp:
-        host: domain.com
-        secure: ssl
-        port: 465
-        authtype: LOGIN
-        name: user
-        password: pass
-
-    storage:
-      enabled: true
-      storageClass: null
-      accessMode: ReadWriteOnce
-      size: 10Gi
-      nextcloudData:
-        enabled: true
-        size: 50Gi
-
-    resources:
-      requests:
-        cpu: 100m
-        memory: 128Mi
-      limits:
-        cpu: 100m
-        memory: 128Mi
-
-    helmValues:
-      nextcloud:
-        host: ${nextcloud:ingress:host}
-        username: ${nextcloud:admin:user}
-        passowrd: ${nextcloud:admin:password}
-        mail: ${nextcloud:mail}
-      cronjob:
-        enabled: true
-      persistence: ${nextcloud:storage}
-      resources: ${nextcloud:resources}
-      metrics:
-        enabled: false
-        serviceMonitor:
-          enabled: true
+    resources: {}

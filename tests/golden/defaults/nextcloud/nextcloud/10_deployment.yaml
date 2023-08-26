@@ -1,0 +1,59 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  annotations: {}
+  labels:
+    name: nextcloud
+  name: nextcloud
+spec:
+  minReadySeconds: 30
+  replicas: 1
+  revisionHistoryLimit: 10
+  selector:
+    matchLabels:
+      name: nextcloud
+  strategy:
+    rollingUpdate:
+      maxSurge: 0
+      maxUnavailable: 1
+    type: RollingUpdate
+  template:
+    metadata:
+      annotations: {}
+      labels:
+        name: nextcloud
+    spec:
+      containers:
+        - args: []
+          env:
+            - name: PGID
+              value: '1000'
+            - name: PUID
+              value: '1000'
+            - name: TZ
+              value: Etc/UTC
+          image: docker.io/linuxserver/nextcloud:27.0.2
+          imagePullPolicy: IfNotPresent
+          name: nextcloud
+          ports:
+            - containerPort: 80
+              name: http
+          resources: {}
+          stdin: false
+          tty: false
+          volumeMounts:
+            - mountPath: /config
+              name: config
+            - mountPath: /data
+              name: data
+      imagePullSecrets: []
+      initContainers: []
+      serviceAccountName: default
+      terminationGracePeriodSeconds: 30
+      volumes:
+        - name: config
+          persistentVolumeClaim:
+            claimName: nextcloud-config
+        - name: data
+          persistentVolumeClaim:
+            claimName: nextcloud-data
