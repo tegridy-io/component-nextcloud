@@ -1,0 +1,17 @@
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  labels:
+    app.kubernetes.io/instance: redis
+    app.kubernetes.io/managed-by: commodore
+    app.kubernetes.io/name: redis
+    app.kubernetes.io/version: 7.2.3
+    helm.sh/chart: redis-18.6.1
+  name: redis
+  namespace: syn-nextcloud
+spec:
+  maxUnavailable: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/instance: redis
+      app.kubernetes.io/name: redis
