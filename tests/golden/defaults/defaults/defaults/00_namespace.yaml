@@ -4,5 +4,5 @@ metadata:
   annotations: {}
   labels:
     monitoring.syn.tools/system: 'true'
-    name: syn-nextcloud
-  name: syn-nextcloud
+    name: app-defaults
+  name: app-defaults

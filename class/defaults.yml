@@ -1,61 +1,255 @@
 parameters:
   nextcloud:
-    =_metadata: {}
+    =_metadata:
+      multi_instance: true
 
-    namespace: syn-nextcloud
+    =_config:
+      redis:
+        'True':
+          - name: REDIS_HOST
+            value: redis-headless
+          - name: REDIS_HOST_PORT
+            value: '26379'
+          - name: REDIS_HOST_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: redis
+                key: redis-password
+        'False': []
+
+    namespace:
+      annotations: {}
+      labels: {}
+      name: app-${_instance}
 
     charts:
       nextcloud:
         source: https://nextcloud.github.io/helm
-        version: v4.1.0
+        version: 4.5.12
+      postgresql:
+        source: https://charts.bitnami.com/bitnami
+        version: 13.4.2
+      redis:
+        source: https://charts.bitnami.com/bitnami
+        version: 18.9.0
 
-    admin:
-      user: admin
-      password: changeme
+    images:
+      kubectl:
+        registry: docker.io
+        repository: bitnami/kubectl
+        tag: v1.28.4
 
-    ingress:
-      host: nextcloud.kube.home
-
-    mail:
-      enabled: false
-      fromAddress: user
-      domain: domain.com
-      smtp:
-        host: domain.com
-        secure: ssl
-        port: 465
-        authtype: LOGIN
-        name: user
-        password: pass
-
-    storage:
+    database:
       enabled: true
-      storageClass: null
-      accessMode: ReadWriteOnce
-      size: 10Gi
-      nextcloudData:
+      mode: standalone
+      persistence:
         enabled: true
-        size: 50Gi
+        accessMode: ReadWriteOnce
+        storageClass: ''
+        size: 5Gi
 
-    resources:
-      requests:
-        cpu: 100m
-        memory: 128Mi
-      limits:
-        cpu: 100m
-        memory: 128Mi
+    redis:
+      enabled: false
+      mode: replication
+      persistence:
+        enabled: false
+        accessMode: ReadWriteOnce
+        storageClass: ''
+        size: 1Gi
+
+    nextcloud:
+      region:
+        language: 'de'
+        locale: 'de_CH'
+        phone: 'CH'
+        timezone: 'Europe/Zurich'
+      url: nextcloud.local
+      persistence:
+        enabled: true
+        accessMode: ReadWriteOnce
+        storageClass: ''
+        size: 10Gi
+
+    secrets:
+      postgresql: ?{vaultkv:${cluster:tenant}/${cluster:name}/nextcloud/${_instance}/postgresql}
+      redis: ?{vaultkv:${cluster:tenant}/${cluster:name}/nextcloud/${_instance}/redis}
+      nextcloud: ?{vaultkv:${cluster:tenant}/${cluster:name}/nextcloud/${_instance}/nextcloud}
+      token: ?{vaultkv:${cluster:tenant}/${cluster:name}/nextcloud/${_instance}/token}
 
     helmValues:
-      nextcloud:
-        host: ${nextcloud:ingress:host}
-        username: ${nextcloud:admin:user}
-        passowrd: ${nextcloud:admin:password}
-        mail: ${nextcloud:mail}
-      cronjob:
-        enabled: true
-      persistence: ${nextcloud:storage}
-      resources: ${nextcloud:resources}
-      metrics:
-        enabled: false
-        serviceMonitor:
+      postgresql:
+        architecture: ${nextcloud:database:mode}
+        auth:
+          enablePostgresUser: false
+          username: nextcloud
+          database: nextcloud
+          existingSecret: nextcloud
+          secretKeys:
+            adminPasswordKey: postgres-password
+            userPasswordKey: postgres-password
+            replicationPasswordKey: replication-password
+        commonLabels:
+          app.kubernetes.io/managed-by: commodore
+        primary:
+          resources:
+            limits: {}
+            requests: {}
+          podAntiAffinityPreset: soft
+          persistence:
+            enabled: ${nextcloud:database:persistence:enabled}
+            accessMode: ${nextcloud:database:persistence:accessMode}
+            storageClass: ${nextcloud:database:persistence:storageClass}
+            size: ${nextcloud:database:persistence:size}
+        tls:
+          enabled: false
+        serviceAccount:
+          create: false
+
+      redis:
+        architecture: ${nextcloud:redis:mode}
+        auth:
+          existingSecret: nextcloud
+          existingSecretPasswordKey: redis-password
+        commonLabels:
+          app.kubernetes.io/managed-by: commodore
+        master:
+          resources:
+            limits: {}
+            requests: {}
+          persistence:
+            enabled: ${nextcloud:redis:persistence:enabled}
+        replica:
+          resources:
+            limits: {}
+            requests: {}
+          persistence:
+            enabled: ${nextcloud:redis:persistence:enabled}
+            accessMode: ${nextcloud:redis:persistence:accessMode}
+          podAntiAffinityPreset: hard
+        sentinel:
           enabled: true
+          resources:
+            limits: {}
+            requests: {}
+          persistence:
+            enabled: ${nextcloud:redis:persistence:enabled}
+        pdb:
+          create: true
+          minAvailable: ""
+          maxUnavailable: 1
+        tls:
+          enabled: false
+          autoGenerated: false
+        serviceAccount:
+          create: false
+
+      nextcloud:
+        deploymentLabels:
+          app.kubernetes.io/managed-by: commodore
+        internalDatabase:
+          enabled: false
+        externalDatabase:
+          enabled: ${nextcloud:database:enabled}
+          type: postgresql
+          host: postgresql
+          existingSecret:
+            enabled: true
+            secretName: nextcloud
+            usernameKey: postgres-username
+            passwordKey: postgres-password
+        nginx:
+          enabled: true
+        image:
+          flavor: fpm-alpine
+        postgresql:
+          enabled: false
+        redis:
+          enabled: false
+        ingress:
+          enabled: true
+          labels:
+            app.kubernetes.io/managed-by: commodore
+        nextcloud:
+          host: ${nextcloud:nextcloud:url}
+          existingSecret:
+            enabled: true
+            secretName: nextcloud
+          extraEnv: ${nextcloud:_config:redis:${nextcloud:redis:enabled}}
+          configs:
+            language.config.php: |-
+              <?php
+              $CONFIG = [
+                'default_language' => '${nextcloud:nextcloud:region:language}',
+                'default_locale' => '${nextcloud:nextcloud:region:locale}',
+                'default_phone_region' => '${nextcloud:nextcloud:region:phone}',
+                'default_timezone' => '${nextcloud:nextcloud:region:timezone}',
+              ];
+            proxy.config.php: |-
+              <?php
+              $CONFIG = array (
+                'trusted_proxies' =>
+                array (
+                  0 => '127.0.0.1',
+                  1 => '10.128.0.0/14',
+                ),
+                'forwarded_for_headers' =>
+                array (
+                  0 => 'HTTP_X_FORWARDED_FOR',
+                ),
+              );
+        persistence:
+          enabled: ${nextcloud:nextcloud:persistence:enabled}
+          accessMode: ${nextcloud:nextcloud:persistence:accessMode}
+          storageClass: ${nextcloud:nextcloud:persistence:storageClass}
+          size: ${nextcloud:nextcloud:persistence:size}
+
+## Redis Cluster Configs, maybe...
+        #   phpConfigs:
+        #     redis-cluster.ini: |-
+        #       session.save_handler = rediscluster
+        #       session.save_path = "seed[]=redis-cluster-endpoint&timeout=2&read_timeout=2&failover=error&persistent=1&auth[user]=redis-user&auth[pass]=redis-password"
+          # configs:
+          #   redis-cluster.config.php: |-
+          #     <?php
+          #     $CONFIG = [
+          #       'memcache.local' => '\OC\Memcache\APCu',
+          #       'memcache.distributed' => '\\OC\\Memcache\\Redis',
+          #       'memcache.locking' => '\\OC\\Memcache\\Redis',
+          #       'redis' => [
+          #         'host' => 'redis-headless',
+          #         'port' => 6379,
+          #       ],
+          #     ];
+
+            # redis-cluster.config.php: |-
+            #   <?php
+            #   $CONFIG = [
+            #     'memcache.local' => '\OC\Memcache\APCu',
+            #     'memcache.distributed' => '\\OC\\Memcache\\Redis',
+            #     'memcache.locking' => '\\OC\\Memcache\\Redis',
+            #     'redis.cluster' => [
+            #       'seeds' => [
+            #         'redis-node-0.redis-headless.svc',
+            #         'redis-node-1.redis-headless.svc',
+            #         'redis-node-2.redis-headless.svc',
+            #       ],
+            #     ],
+            #   ];
+
+            # redis-cluster.config.php: |-
+            #   <?php
+            #   $CONFIG = [
+            #     'memcache.distributed' => '\\OC\\Memcache\\Redis',
+            #     'memcache.locking' => '\\OC\\Memcache\\Redis',
+            #     'redis.cluster' => [
+            #       'seeds' => [
+            #         'redis-cluster-endpoint',
+            #       ],
+            #       'timeout' => 0.0,
+            #       'read_timeout' => 0.0,
+            #       'failover_mode' => \RedisCluster::FAILOVER_ERROR,
+            #       'user' => 'redis-user',
+            #       'password' => 'redis-password'
+            #     ],
+            #   ];
+#ALTER DATABASE nextcloud SET serial_normalization = virtual_sequence

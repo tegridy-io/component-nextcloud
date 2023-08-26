@@ -3,8 +3,8 @@ local inv = kap.inventory();
 local params = inv.parameters.nextcloud;
 local argocd = import 'lib/argocd.libjsonnet';
 
-local app = argocd.App('nextcloud', params.namespace);
+local app = argocd.App(inv.parameters._instance, params.namespace.name);
 
 {
-  nextcloud: app,
+  [inv.parameters._instance]: app,
 }

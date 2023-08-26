@@ -1,4 +1,6 @@
 applications:
+  - cockroach-operator
+  - redis-operator
   - prometheus
 
 parameters:
@@ -7,6 +9,34 @@ parameters:
       - type: https
         source: https://raw.githubusercontent.com/projectsyn/component-prometheus/master/lib/prometheus.libsonnet
         output_path: vendor/lib/prometheus.libsonnet
+      - type: https
+        source: https://raw.githubusercontent.com/tegridy-io/component-cockroach-operator/master/lib/cockroach-operator.libsonnet
+        output_path: vendor/lib/cockroach-operator.libsonnet
+      - type: https
+        source: https://raw.githubusercontent.com/tegridy-io/component-redis-operator/master/lib/redis-operator.libsonnet
+        output_path: vendor/lib/redis-operator.libsonnet
+
+  cockroach_operator:
+    images:
+      cockroach:
+        registry: docker.io
+        repository: cockroachdb/cockroach
+        tag: v23.1.8
+
+  redis_operator:
+    images:
+      redis:
+        registry: quay.io
+        repository: opstree/redis
+        tag: v7.0.12
+      sentinel:
+        registry: quay.io
+        repository: opstree/redis-sentinel
+        tag: v7.0.12
+      exporter:
+        registry: quay.io
+        repository: opstree/redis-exporter
+        tag: v1.48.0
 
   prometheus:
     defaultInstance: system
