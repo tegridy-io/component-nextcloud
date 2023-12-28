@@ -1,0 +1,266 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  labels:
+    app.kubernetes.io/component: node
+    app.kubernetes.io/instance: redis
+    app.kubernetes.io/managed-by: commodore
+    app.kubernetes.io/name: redis
+    app.kubernetes.io/version: 7.2.3
+    helm.sh/chart: redis-18.6.1
+  name: redis-node
+  namespace: syn-nextcloud
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app.kubernetes.io/component: node
+      app.kubernetes.io/instance: redis
+      app.kubernetes.io/name: redis
+  serviceName: redis-headless
+  template:
+    metadata:
+      annotations:
+        checksum/configmap: 6030103a5eb3ef85122ff68976e6445bc4611aa73639e649b10d127f2606b682
+        checksum/health: 1eace71641fb5bd753e90012419e82c10b1180d694f91d83743b727a5aacca73
+        checksum/scripts: 80e8637ab8411e40cce45271ca6644a6ccd0be42c2c807c8cee5041ed4090d3f
+        checksum/secret: 44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a
+      labels:
+        app.kubernetes.io/component: node
+        app.kubernetes.io/instance: redis
+        app.kubernetes.io/managed-by: commodore
+        app.kubernetes.io/name: redis
+        app.kubernetes.io/version: 7.2.3
+        helm.sh/chart: redis-18.6.1
+    spec:
+      affinity:
+        nodeAffinity: null
+        podAffinity: null
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector:
+                matchLabels:
+                  app.kubernetes.io/component: node
+                  app.kubernetes.io/instance: redis
+                  app.kubernetes.io/name: redis
+              topologyKey: kubernetes.io/hostname
+      automountServiceAccountToken: true
+      containers:
+        - args:
+            - -c
+            - /opt/bitnami/scripts/start-scripts/start-node.sh
+          command:
+            - /bin/bash
+          env:
+            - name: BITNAMI_DEBUG
+              value: 'false'
+            - name: REDIS_MASTER_PORT_NUMBER
+              value: '6379'
+            - name: ALLOW_EMPTY_PASSWORD
+              value: 'no'
+            - name: REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  key: redis-password
+                  name: nextcloud
+            - name: REDIS_MASTER_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  key: redis-password
+                  name: nextcloud
+            - name: REDIS_TLS_ENABLED
+              value: 'no'
+            - name: REDIS_PORT
+              value: '6379'
+            - name: REDIS_SENTINEL_TLS_ENABLED
+              value: 'no'
+            - name: REDIS_SENTINEL_PORT
+              value: '26379'
+            - name: REDIS_DATA_DIR
+              value: /data
+          image: docker.io/bitnami/redis:7.2.3-debian-11-r2
+          imagePullPolicy: IfNotPresent
+          lifecycle:
+            preStop:
+              exec:
+                command:
+                  - /bin/bash
+                  - -c
+                  - /opt/bitnami/scripts/start-scripts/prestop-redis.sh
+          livenessProbe:
+            exec:
+              command:
+                - sh
+                - -c
+                - /health/ping_liveness_local.sh 5
+            failureThreshold: 5
+            initialDelaySeconds: 20
+            periodSeconds: 5
+            successThreshold: 1
+            timeoutSeconds: 5
+          name: redis
+          ports:
+            - containerPort: 6379
+              name: redis
+          readinessProbe:
+            exec:
+              command:
+                - sh
+                - -c
+                - /health/ping_readiness_local.sh 1
+            failureThreshold: 5
+            initialDelaySeconds: 20
+            periodSeconds: 5
+            successThreshold: 1
+            timeoutSeconds: 1
+          resources:
+            limits: {}
+            requests: {}
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+            runAsGroup: 0
+            runAsNonRoot: true
+            runAsUser: 1001
+            seccompProfile:
+              type: RuntimeDefault
+          startupProbe:
+            exec:
+              command:
+                - sh
+                - -c
+                - /health/ping_liveness_local.sh 5
+            failureThreshold: 22
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            successThreshold: 1
+            timeoutSeconds: 5
+          volumeMounts:
+            - mountPath: /opt/bitnami/scripts/start-scripts
+              name: start-scripts
+            - mountPath: /health
+              name: health
+            - mountPath: /data
+              name: redis-data
+            - mountPath: /opt/bitnami/redis/mounted-etc
+              name: config
+            - mountPath: /opt/bitnami/redis/etc
+              name: redis-tmp-conf
+            - mountPath: /tmp
+              name: tmp
+        - args:
+            - -c
+            - /opt/bitnami/scripts/start-scripts/start-sentinel.sh
+          command:
+            - /bin/bash
+          env:
+            - name: BITNAMI_DEBUG
+              value: 'false'
+            - name: REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  key: redis-password
+                  name: nextcloud
+            - name: REDIS_SENTINEL_TLS_ENABLED
+              value: 'no'
+            - name: REDIS_SENTINEL_PORT
+              value: '26379'
+          image: docker.io/bitnami/redis-sentinel:7.2.3-debian-11-r2
+          imagePullPolicy: IfNotPresent
+          lifecycle:
+            preStop:
+              exec:
+                command:
+                  - /bin/bash
+                  - -c
+                  - /opt/bitnami/scripts/start-scripts/prestop-sentinel.sh
+          livenessProbe:
+            exec:
+              command:
+                - sh
+                - -c
+                - /health/ping_sentinel.sh 5
+            failureThreshold: 6
+            initialDelaySeconds: 20
+            periodSeconds: 10
+            successThreshold: 1
+            timeoutSeconds: 5
+          name: sentinel
+          ports:
+            - containerPort: 26379
+              name: redis-sentinel
+          readinessProbe:
+            exec:
+              command:
+                - sh
+                - -c
+                - /health/ping_sentinel.sh 1
+            failureThreshold: 6
+            initialDelaySeconds: 20
+            periodSeconds: 5
+            successThreshold: 1
+            timeoutSeconds: 1
+          resources:
+            limits: {}
+            requests: {}
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+            runAsGroup: 0
+            runAsNonRoot: true
+            runAsUser: 1001
+            seccompProfile:
+              type: RuntimeDefault
+          startupProbe:
+            exec:
+              command:
+                - sh
+                - -c
+                - /health/ping_sentinel.sh 5
+            failureThreshold: 22
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            successThreshold: 1
+            timeoutSeconds: 5
+          volumeMounts:
+            - mountPath: /opt/bitnami/scripts/start-scripts
+              name: start-scripts
+            - mountPath: /health
+              name: health
+            - mountPath: /opt/bitnami/redis-sentinel/etc
+              name: sentinel-data
+            - mountPath: /data
+              name: redis-data
+            - mountPath: /opt/bitnami/redis-sentinel/mounted-etc
+              name: config
+      enableServiceLinks: true
+      securityContext:
+        fsGroup: 1001
+      serviceAccountName: redis
+      terminationGracePeriodSeconds: 30
+      volumes:
+        - configMap:
+            defaultMode: 493
+            name: redis-scripts
+          name: start-scripts
+        - configMap:
+            defaultMode: 493
+            name: redis-health
+          name: health
+        - configMap:
+            name: redis-configuration
+          name: config
+        - emptyDir: {}
+          name: sentinel-data
+        - emptyDir: {}
+          name: redis-tmp-conf
+        - emptyDir: {}
+          name: tmp
+        - emptyDir: {}
+          name: redis-data
+  updateStrategy:
+    type: RollingUpdate
