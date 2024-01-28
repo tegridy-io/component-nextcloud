@@ -1,5 +1,53 @@
 parameters:
+  =_config:
+    database:
+      'True':
+        input_paths:
+          - ${_base_directory}/helmcharts/postgresql/${nextcloud:charts:postgresql:version}
+        input_type: helm
+        output_path: ${_instance}//10_helmchart/
+        helm_values: ${nextcloud:helmValues:postgresql}
+        helm_params:
+          name: postgresql
+          namespace: ${nextcloud:namespace:name}
+          dependency_update: false
+      'False':
+        input_paths: []
+        input_type: jsonnet
+        output_path: ''
+    redis:
+      'True':
+        input_paths:
+          - ${_base_directory}/helmcharts/redis/${nextcloud:charts:redis:version}
+        input_type: helm
+        output_path: ${_instance}//10_helmchart/
+        helm_values: ${nextcloud:helmValues:redis}
+        helm_params:
+          name: redis
+          namespace: ${nextcloud:namespace:name}
+          dependency_update: false
+      'False':
+        input_paths: []
+        input_type: jsonnet
+        output_path: ''
+
   kapitan:
+    dependencies:
+      - type: helm
+        source: ${nextcloud:charts:redis:source}
+        chart_name: redis
+        version: ${nextcloud:charts:redis:version}
+        output_path: ${_base_directory}/helmcharts/redis/${nextcloud:charts:redis:version}/
+      - type: helm
+        source: ${nextcloud:charts:postgresql:source}
+        chart_name: postgresql
+        version: ${nextcloud:charts:postgresql:version}
+        output_path: ${_base_directory}/helmcharts/postgresql/${nextcloud:charts:postgresql:version}/
+      - type: helm
+        source: ${nextcloud:charts:nextcloud:source}
+        chart_name: nextcloud
+        version: ${nextcloud:charts:nextcloud:version}
+        output_path: ${_base_directory}/helmcharts/nextcloud/${nextcloud:charts:nextcloud:version}/
     compile:
       - input_paths:
           - ${_base_directory}/component/app.jsonnet
@@ -8,4 +56,15 @@ parameters:
       - input_paths:
           - ${_base_directory}/component/main.jsonnet
         input_type: jsonnet
-        output_path: nextcloud/
+        output_path: ${_instance}/
+      - ${_config:database:${nextcloud:database:enabled}}
+      - ${_config:redis:${nextcloud:redis:enabled}}
+      - input_paths:
+          - ${_base_directory}/helmcharts/nextcloud/${nextcloud:charts:nextcloud:version}
+        input_type: helm
+        output_path: ${_instance}//10_helmchart/
+        helm_values: ${nextcloud:helmValues:nextcloud}
+        helm_params:
+          name: nextcloud
+          namespace: ${nextcloud:namespace:name}
+          dependency_update: false

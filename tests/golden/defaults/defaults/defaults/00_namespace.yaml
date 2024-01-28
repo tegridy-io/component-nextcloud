@@ -1,0 +1,8 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  annotations: {}
+  labels:
+    monitoring.syn.tools/system: 'true'
+    name: app-defaults
+  name: app-defaults
