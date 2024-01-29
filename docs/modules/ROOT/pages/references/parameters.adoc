@@ -5,15 +5,118 @@ The parent key for all of the following parameters is `nextcloud`.
 == `namespace`
 
 [horizontal]
-type:: string
-default:: `syn-nextcloud`
+type:: dictionary
+default::
++
+[source,yaml]
+----
+annotations: {}
+labels: {}
+name: app-${_instance}
+----
 
 The namespace in which to deploy this component.
+
+
+== `database`
+
+[horizontal]
+type:: dictionary
+default::
++
+[source,yaml]
+----
+enabled: true <1>
+mode: standalone <2>
+persistence: <3>
+  enabled: true
+  accessMode: ReadWriteOnce
+  storageClass: ''
+  size: 5Gi
+----
+<1> Enable external postgresql database.
+<2> Configure postgresql mode.
+<3> Configure persistence for postgresql.
+
+Enable/configure postgresql as database backend.
+
+
+== `redis`
+
+[horizontal]
+type:: dictionary
+default::
++
+[source,yaml]
+----
+enabled: false <1>
+mode: replication <2>
+persistence: <3>
+  enabled: false
+  accessMode: ReadWriteOnce
+  storageClass: ''
+  size: 1Gi
+----
+<1> Enable redis for file locking.
+<2> Configure reis mode.
+<3> Configure persistence for redis.
+
+
+== `nextcloud`
+
+[horizontal]
+type:: dictionary
+default::
++
+[source,yaml]
+----
+region: <1>
+  language: 'de'
+  locale: 'de_CH'
+  phone: 'CH'
+  timezone: 'Europe/Zurich'
+url: nextcloud.local <2>
+persistence: <3>
+  enabled: true
+  accessMode: ReadWriteOnce
+  storageClass: ''
+  size: 10Gi
+----
+<1> Configure regional settings.
+<2> Configure nextcloud URL.
+<3> Configure persistence for nextcloud.
+
+
+== `secrets`
+
+[horizontal]
+type:: dictionary
+default::
++
+[source,yaml]
+----
+postgresql: '?{vaultkv:${cluster:tenant}/${cluster:name}/nextcloud/${_instance}/postgresql}'
+redis: '?{vaultkv:${cluster:tenant}/${cluster:name}/nextcloud/${_instance}/redis}'
+nextcloud: '?{vaultkv:${cluster:tenant}/${cluster:name}/nextcloud/${_instance}/nextcloud}'
+token: '?{vaultkv:${cluster:tenant}/${cluster:name}/nextcloud/${_instance}/token}'
+----
+
+See https://syn.tools/commodore/reference/concepts.html#_secret_references[ProjectSyn Documentation] for reference.
 
 
 == Example
 
 [source,yaml]
 ----
-namespace: example-namespace
+nextcloud:
+  database:
+    persistence:
+      storageClass: ceph-block
+
+  nextcloud:
+    url: nextcloud.apps.tegridy.io
+    persistence:
+      accessMode: ReadWriteMany
+      storageClass: ceph-file
+      size: 100Gi
 ----
