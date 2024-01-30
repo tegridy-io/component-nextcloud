@@ -18,6 +18,65 @@ name: app-${_instance}
 The namespace in which to deploy this component.
 
 
+== `nextcloud`
+
+[horizontal]
+type:: dictionary
+default::
++
+[source,yaml]
+----
+url: nextcloud.local <1>
+persistence: <2>
+  enabled: true
+  accessMode: ReadWriteOnce
+  storageClass: ''
+  size: 10Gi
+extra: <3>
+  language.config.php: |-
+    <?php
+    $CONFIG = [
+      'default_language' => 'de',
+      'default_locale' => 'de_CH',
+      'default_phone_region' => 'CH',
+      'default_timezone' => 'Europe/Zurich',
+    ];
+  proxy.config.php: |-
+    <?php
+    $CONFIG = array (
+      'trusted_proxies' =>
+      array (
+        0 => '127.0.0.1',
+        1 => '10.128.0.0/14',
+      ),
+      'forwarded_for_headers' =>
+      array (
+        0 => 'HTTP_X_FORWARDED_FOR',
+      ),
+    );
+----
+<1> Configure nextcloud URL.
+<2> Configure persistence for nextcloud.
+<3> Additional configuration files.
+
+
+== `secrets`
+
+[horizontal]
+type:: dictionary
+default::
++
+[source,yaml]
+----
+postgresql: '?{vaultkv:${cluster:tenant}/${cluster:name}/nextcloud/${_instance}/postgresql}'
+redis: '?{vaultkv:${cluster:tenant}/${cluster:name}/nextcloud/${_instance}/redis}'
+nextcloud: '?{vaultkv:${cluster:tenant}/${cluster:name}/nextcloud/${_instance}/nextcloud}'
+token: '?{vaultkv:${cluster:tenant}/${cluster:name}/nextcloud/${_instance}/token}'
+----
+
+See https://syn.tools/commodore/reference/concepts.html#_secret_references[ProjectSyn Documentation] for reference.
+
+
 == `database`
 
 [horizontal]
@@ -62,46 +121,13 @@ persistence: <3>
 <3> Configure persistence for redis.
 
 
-== `nextcloud`
+== `helmValues`
 
 [horizontal]
 type:: dictionary
-default::
-+
-[source,yaml]
-----
-region: <1>
-  language: 'de'
-  locale: 'de_CH'
-  phone: 'CH'
-  timezone: 'Europe/Zurich'
-url: nextcloud.local <2>
-persistence: <3>
-  enabled: true
-  accessMode: ReadWriteOnce
-  storageClass: ''
-  size: 10Gi
-----
-<1> Configure regional settings.
-<2> Configure nextcloud URL.
-<3> Configure persistence for nextcloud.
+default:: https://github.com/tegridy-io/component-nextcloud/blob/master/class/defaults.yml[See `class/defaults.yml`]
 
-
-== `secrets`
-
-[horizontal]
-type:: dictionary
-default::
-+
-[source,yaml]
-----
-postgresql: '?{vaultkv:${cluster:tenant}/${cluster:name}/nextcloud/${_instance}/postgresql}'
-redis: '?{vaultkv:${cluster:tenant}/${cluster:name}/nextcloud/${_instance}/redis}'
-nextcloud: '?{vaultkv:${cluster:tenant}/${cluster:name}/nextcloud/${_instance}/nextcloud}'
-token: '?{vaultkv:${cluster:tenant}/${cluster:name}/nextcloud/${_instance}/token}'
-----
-
-See https://syn.tools/commodore/reference/concepts.html#_secret_references[ProjectSyn Documentation] for reference.
+The Helm values to use when rendering the Helm charts.
 
 
 == Example
@@ -113,7 +139,7 @@ nextcloud:
     persistence:
       storageClass: ceph-block
 
-  nextcloud:
+  config:
     url: nextcloud.apps.tegridy.io
     persistence:
       accessMode: ReadWriteMany
