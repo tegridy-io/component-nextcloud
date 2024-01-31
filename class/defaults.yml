@@ -4,6 +4,16 @@ parameters:
       multi_instance: true
 
     =_config:
+      ingressTls:
+        'True':
+          - secretName: nextcloud-tls
+            hosts:
+              - ${nextcloud:config:url}
+        'False': []
+      ingressAnnotations:
+        'True':
+          cert-manager.io/cluster-issuer: ${nextcloud:config:tls:issuer}
+        'False': {}
       redis:
         'True':
           - name: REDIS_HOST
@@ -47,6 +57,9 @@ parameters:
 
     config:
       url: nextcloud.local
+      tls:
+        enabled: true
+        issuer: letsencrypt-production
       persistence:
         enabled: true
         accessMode: ReadWriteOnce
@@ -202,8 +215,10 @@ parameters:
           enabled: false
         ingress:
           enabled: true
+          annotations: ${nextcloud:_config:ingressAnnotations:${nextcloud:config:tls:enabled}}
           labels:
             app.kubernetes.io/managed-by: commodore
+          tls: ${nextcloud:_config:ingressTls:${nextcloud:config:tls:enabled}}
         nextcloud:
           host: ${nextcloud:config:url}
           existingSecret:

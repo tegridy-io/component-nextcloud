@@ -18,7 +18,7 @@ name: app-${_instance}
 The namespace in which to deploy this component.
 
 
-== `nextcloud`
+== `config`
 
 [horizontal]
 type:: dictionary
@@ -27,12 +27,15 @@ default::
 [source,yaml]
 ----
 url: nextcloud.local <1>
-persistence: <2>
+tls: <2>
+  enabled: true
+  issuer: letsencrypt-production
+persistence: <3>
   enabled: true
   accessMode: ReadWriteOnce
   storageClass: ''
   size: 10Gi
-extra: <3>
+extra: <4>
   language.config.php: |-
     <?php
     $CONFIG = [
@@ -56,8 +59,9 @@ extra: <3>
     );
 ----
 <1> Configure nextcloud URL.
-<2> Configure persistence for nextcloud.
-<3> Additional configuration files.
+<2> Configure tls with cert-manager.
+<3> Configure persistence for nextcloud.
+<4> Additional configuration files.
 
 
 == `secrets`
