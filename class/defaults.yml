@@ -7,15 +7,21 @@ parameters:
       redis:
         'True':
           - name: REDIS_HOST
-            value: redis-headless
+            value: redis-master
           - name: REDIS_HOST_PORT
-            value: '26379'
+            value: '6379'
           - name: REDIS_HOST_PASSWORD
             valueFrom:
               secretKeyRef:
-                name: redis
+                name: nextcloud
                 key: redis-password
         'False': []
+        standalone:
+          sentinel: false
+          pdb: false
+        replication:
+          sentinel: true
+          pdb: true
 
     namespace:
       annotations: {}
@@ -85,10 +91,10 @@ parameters:
         size: 5Gi
 
     redis:
-      enabled: false
-      mode: replication
+      enabled: true
+      mode: standalone
       persistence:
-        enabled: false
+        enabled: true
         accessMode: ReadWriteOnce
         storageClass: ''
         size: 1Gi
@@ -140,6 +146,10 @@ parameters:
             requests: {}
           persistence:
             enabled: ${nextcloud:redis:persistence:enabled}
+            accessMode: ${nextcloud:redis:persistence:accessMode}
+            size: ${nextcloud:redis:persistence:size}
+          serviceAccount:
+            create: false
         replica:
           resources:
             limits: {}
@@ -147,16 +157,17 @@ parameters:
           persistence:
             enabled: ${nextcloud:redis:persistence:enabled}
             accessMode: ${nextcloud:redis:persistence:accessMode}
+            size: ${nextcloud:redis:persistence:size}
           podAntiAffinityPreset: hard
         sentinel:
-          enabled: true
+          enabled: ${nextcloud:_config:redis:${nextcloud:redis:mode}:sentinel}
           resources:
             limits: {}
             requests: {}
           persistence:
             enabled: ${nextcloud:redis:persistence:enabled}
         pdb:
-          create: true
+          create: ${nextcloud:_config:redis:${nextcloud:redis:mode}:pdb}
           minAvailable: ""
           maxUnavailable: 1
         tls:

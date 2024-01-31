@@ -1,0 +1,22 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  labels:
+    app.kubernetes.io/component: app
+    app.kubernetes.io/instance: nextcloud
+    app.kubernetes.io/managed-by: commodore
+    app.kubernetes.io/name: nextcloud
+    helm.sh/chart: nextcloud-4.5.12
+  name: nextcloud
+spec:
+  rules:
+    - host: nextcloud.local
+      http:
+        paths:
+          - backend:
+              service:
+                name: nextcloud
+                port:
+                  number: 8080
+            path: /
+            pathType: Prefix

@@ -1,3 +1,8 @@
 # Overwrite parameters here
 
-# parameters: {...}
+parameters:
+  instances:
+    redis:
+      enabled: true
+      persistence:
+        enabled: true
