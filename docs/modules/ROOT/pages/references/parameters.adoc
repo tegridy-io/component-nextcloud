@@ -108,18 +108,19 @@ default::
 +
 [source,yaml]
 ----
-enabled: false <1>
-mode: replication <2>
+enabled: true <1>
+mode: standalone <2>
 persistence: <3>
-  enabled: false
+  enabled: true
   accessMode: ReadWriteOnce
   storageClass: ''
   size: 1Gi
 ----
 <1> Enable redis for file locking.
-<2> Configure reis mode.
+<2> Configure redis mode.
 <3> Configure persistence for redis.
 
+NOTE: Currently only standalone mode supported!
 
 == `helmValues`
 
