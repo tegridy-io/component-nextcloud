@@ -98,8 +98,12 @@ spec:
             successThreshold: 1
             timeoutSeconds: 2
           resources:
-            limits: {}
-            requests: {}
+            limits:
+              cpu: 500m
+              memory: 256Mi
+            requests:
+              cpu: 20m
+              memory: 128Mi
           securityContext:
             allowPrivilegeEscalation: false
             capabilities:

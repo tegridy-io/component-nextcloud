@@ -55,6 +55,43 @@ parameters:
         repository: bitnami/kubectl
         tag: v1.28.4
 
+    resources:
+      nextcloud:
+        requests:
+          cpu: 500m
+          memory: 3Gi
+        limits:
+          cpu: 4
+          memory: 8Gi
+      nginx:
+        requests:
+          cpu: 10m
+          memory: 16Mi
+        limits:
+          cpu: 50m
+          memory: 128Mi
+      cronjob:
+        requests:
+          cpu: 150m
+          memory: 256Mi
+        limits:
+          cpu: 1
+          memory: 1Gi
+      postgresql:
+        requests:
+          cpu: 20m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 256Mi
+      redis:
+        requests:
+          cpu: 20m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 256Mi
+
     config:
       url: nextcloud.local
       tls:
@@ -130,9 +167,7 @@ parameters:
         commonLabels:
           app.kubernetes.io/managed-by: commodore
         primary:
-          resources:
-            limits: {}
-            requests: {}
+          resources: ${nextcloud:resources:postgresql}
           podAntiAffinityPreset: soft
           persistence:
             enabled: ${nextcloud:database:persistence:enabled}
@@ -154,9 +189,7 @@ parameters:
         commonLabels:
           app.kubernetes.io/managed-by: commodore
         master:
-          resources:
-            limits: {}
-            requests: {}
+          resources: ${nextcloud:resources:redis}
           persistence:
             enabled: ${nextcloud:redis:persistence:enabled}
             accessMode: ${nextcloud:redis:persistence:accessMode}
@@ -164,9 +197,7 @@ parameters:
           serviceAccount:
             create: false
         replica:
-          resources:
-            limits: {}
-            requests: {}
+          resources: ${nextcloud:resources:redis}
           persistence:
             enabled: ${nextcloud:redis:persistence:enabled}
             accessMode: ${nextcloud:redis:persistence:accessMode}
@@ -174,9 +205,7 @@ parameters:
           podAntiAffinityPreset: hard
         sentinel:
           enabled: ${nextcloud:_config:redis:${nextcloud:redis:mode}:sentinel}
-          resources:
-            limits: {}
-            requests: {}
+          resources: ${nextcloud:resources:redis}
           persistence:
             enabled: ${nextcloud:redis:persistence:enabled}
         pdb:
@@ -207,6 +236,7 @@ parameters:
             passwordKey: postgres-password
         nginx:
           enabled: true
+          resources: ${nextcloud:resources:nginx}
         image:
           flavor: fpm-alpine
         postgresql:
@@ -219,6 +249,7 @@ parameters:
           labels:
             app.kubernetes.io/managed-by: commodore
           tls: ${nextcloud:_config:ingressTls:${nextcloud:config:tls:enabled}}
+        resources: ${nextcloud:resources:nextcloud}
         nextcloud:
           host: ${nextcloud:config:url}
           existingSecret:
@@ -228,6 +259,7 @@ parameters:
           configs: ${nextcloud:config:extra}
         cronjob:
           enabled: true
+          resources: ${nextcloud:resources:cronjob}
         persistence:
           enabled: ${nextcloud:config:persistence:enabled}
           accessMode: ${nextcloud:config:persistence:accessMode}

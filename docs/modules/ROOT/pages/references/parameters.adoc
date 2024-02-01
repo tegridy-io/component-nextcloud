@@ -18,6 +18,54 @@ name: app-${_instance}
 The namespace in which to deploy this component.
 
 
+== `resources`
+
+[horizontal]
+type:: dictionary
+default::
++
+[source,yaml]
+----
+nextcloud:
+  requests:
+    cpu: 500m
+    memory: 3Gi
+  limits:
+    cpu: 4
+    memory: 8Gi
+nginx:
+  requests:
+    cpu: 10m
+    memory: 16Mi
+  limits:
+    cpu: 50m
+    memory: 128Mi
+cronjob:
+  requests:
+    cpu: 150m
+    memory: 256Mi
+  limits:
+    cpu: 1
+    memory: 1Gi
+postgresql:
+  requests:
+    cpu: 20m
+    memory: 128Mi
+  limits:
+    cpu: 500m
+    memory: 256Mi
+redis:
+  requests:
+    cpu: 20m
+    memory: 128Mi
+  limits:
+    cpu: 500m
+    memory: 256Mi
+----
+
+Configure resource requests and limits.
+
+
 == `config`
 
 [horizontal]
