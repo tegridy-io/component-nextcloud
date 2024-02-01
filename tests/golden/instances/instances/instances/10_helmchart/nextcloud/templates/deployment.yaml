@@ -70,7 +70,13 @@ spec:
           image: nextcloud:28.0.1-fpm-alpine
           imagePullPolicy: IfNotPresent
           name: nextcloud
-          resources: {}
+          resources:
+            limits:
+              cpu: 4
+              memory: 8Gi
+            requests:
+              cpu: 500m
+              memory: 3Gi
           volumeMounts:
             - mountPath: /var/www/
               name: nextcloud-main
@@ -151,7 +157,13 @@ spec:
             periodSeconds: 10
             successThreshold: 1
             timeoutSeconds: 5
-          resources: {}
+          resources:
+            limits:
+              cpu: 50m
+              memory: 128Mi
+            requests:
+              cpu: 10m
+              memory: 16Mi
           volumeMounts:
             - mountPath: /var/www/
               name: nextcloud-main
@@ -219,7 +231,13 @@ spec:
           image: nextcloud:28.0.1-fpm-alpine
           imagePullPolicy: IfNotPresent
           name: nextcloud-cron
-          resources: {}
+          resources:
+            limits:
+              cpu: 1
+              memory: 1Gi
+            requests:
+              cpu: 150m
+              memory: 256Mi
           volumeMounts:
             - mountPath: /var/www/
               name: nextcloud-main
