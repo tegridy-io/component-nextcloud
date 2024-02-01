@@ -1,0 +1,60 @@
+apiVersion: v1
+data: {}
+kind: Secret
+metadata:
+  annotations: {}
+  labels:
+    app.kubernetes.io/instance: defaults
+    app.kubernetes.io/managed-by: commodore
+    app.kubernetes.io/name: nextcloud-backup
+    name: nextcloud-backup
+  name: nextcloud-backup
+  namespace: app-defaults
+stringData:
+  accesskey: my-global-access-key
+  password: t-silent-test-1234/c-green-test-1234/nextcloud/defaults/backup
+  secretkey: my-global-secret-key
+type: Opaque
+---
+apiVersion: k8up.io/v1
+kind: Schedule
+metadata:
+  annotations: {}
+  labels:
+    app.kubernetes.io/instance: defaults
+    app.kubernetes.io/managed-by: commodore
+    app.kubernetes.io/name: nextcloud
+    name: nextcloud
+  name: nextcloud
+  namespace: app-defaults
+spec:
+  backend:
+    repoPasswordSecretRef:
+      key: password
+      name: nextcloud-backup
+    s3:
+      accessKeyIDSecretRef:
+        key: accesskey
+        name: nextcloud-backup
+      bucket: my-backup-bucket
+      endpoint: my-global-endpoint
+      secretAccessKeySecretRef:
+        key: secretkey
+        name: nextcloud-backup
+  backup:
+    failedJobsHistoryLimit: 3
+    schedule: 30 4 * * *
+    successfulJobsHistoryLimit: 5
+  check:
+    failedJobsHistoryLimit: 3
+    schedule: 30 8 * * *
+    successfulJobsHistoryLimit: 5
+  podSecurityContext:
+    runAsUser: 0
+  prune:
+    failedJobsHistoryLimit: 3
+    retention:
+      keepLast: 3
+      keepWeekly: 3
+    schedule: 30 13 * * *
+    successfulJobsHistoryLimit: 5

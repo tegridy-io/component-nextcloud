@@ -1,13 +1,23 @@
-# Overwrite parameters here
+applications:
+  - backup-k8up
 
 parameters:
+  backup_k8up:
+    global_backup_config:
+      s3_credentials:
+        accesskey: my-global-access-key
+        secretkey: my-global-secret-key
+      s3_endpoint: my-global-endpoint
+
   instances:
     config:
       ingress:
         annotations:
           cert-manager.io/cluster-issuer: letsencrypt-production
           nginx.ingress.kubernetes.io/proxy-body-size: 4G
-    redis:
-      enabled: true
-      persistence:
-        enabled: true
+    backup:
+      password: my-backup-password
+      backend:
+        endpoint: my-endpoint
+        accessKey: my-access-key
+        secretKey: my-secret-key

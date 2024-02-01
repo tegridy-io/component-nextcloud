@@ -20,6 +20,10 @@ spec:
   serviceName: postgresql-hl
   template:
     metadata:
+      annotations:
+        k8up.io/backupcommand: sh -c 'PGDATABASE="$POSTGRES_DATABASE" PGUSER="$POSTGRES_USER"
+          PGPASSWORD="$POSTGRES_PASSWORD" pg_dump --clean'
+        k8up.io/file-extension: .sql
       labels:
         app.kubernetes.io/component: primary
         app.kubernetes.io/instance: postgresql
@@ -153,6 +157,8 @@ spec:
     - apiVersion: v1
       kind: PersistentVolumeClaim
       metadata:
+        annotations:
+          k8up.io/backup: 'false'
         name: data
       spec:
         accessModes:

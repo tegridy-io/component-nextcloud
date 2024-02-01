@@ -1,10 +1,12 @@
 // main template for nextcloud
+local com = import 'lib/commodore.libjsonnet';
 local kap = import 'lib/kapitan.libjsonnet';
 local kube = import 'lib/kube.libjsonnet';
 local prom = import 'lib/prometheus.libsonnet';
 local inv = kap.inventory();
 // The hiera parameters for the component
 local params = inv.parameters.nextcloud;
+local instanceName = inv.parameters._instance;
 local appName = 'nextcloud';
 local hasPrometheus = std.member(inv.applications, 'prometheus');
 
@@ -17,28 +19,15 @@ local namespace = kube.Namespace(params.namespace.name) {
 };
 
 
-// PersistentVolumeClaims
-
-local pvc = [
-  kube.PersistentVolumeClaim(appName + '-config') {
-    storage: '10Gi',
-    storageClass: 'ceph-block',
-  },
-  kube.PersistentVolumeClaim(appName + '-data') {
-    storage: '10Gi',
-    storageClass: 'ceph-block',
-  },
-];
-
-
 // Secrets
-local secrets = kube.Secret(appName) {
+local secret = kube.Secret(appName) {
   metadata+: {
     labels+: {
-      'app.kubernetes.io/instance': appName,
+      'app.kubernetes.io/instance': instanceName,
       'app.kubernetes.io/managed-by': 'commodore',
       'app.kubernetes.io/name': 'nextcloud',
     },
+    namespace: params.namespace.name,
   },
   stringData: {
     [if params.database.enabled then 'postgres-username']: params.helmValues.postgresql.auth.username,
@@ -50,66 +39,94 @@ local secrets = kube.Secret(appName) {
   },
 };
 
-// Deployment
+// Backup Schedule
 
-local deployment = kube.Deployment(appName) {
-  spec+: {
-    replicas: params.replicaCount,
-    template+: {
-      spec+: {
-        serviceAccountName: 'default',
-        // securityContext: {
-        //   seccompProfile: { type: 'RuntimeDefault' },
-        // },
-        containers_:: {
-          default: kube.Container(appName) {
-            image: '%(registry)s/%(repository)s:%(tag)s' % params.images.nextcloud,
-            env_:: {
-              PUID: 1000,
-              PGID: 1000,
-              TZ: 'Etc/UTC',
-            },
-            ports_:: {
-              http: { containerPort: 80 },
-            },
-            resources: params.resources,
-            // securityContext: {
-            //   allowPrivilegeEscalation: false,
-            //   capabilities: { drop: [ 'ALL' ] },
-            // },
-            volumeMounts_:: {
-              config: { mountPath: '/config' },
-              data: { mountPath: '/data' },
-            } + {
-              ['secret-' + s.metadata.name]: { mountPath: '/secrets/' + s.metadata.name }
-              for s in secrets
-            },
-            // livenessProbe: {
-            //   httpGet: {
-            //     scheme: 'HTTP',
-            //     port: 'http',
-            //     path: '/-/healthy',
-            //   },
-            // },
-          },
-        },
-        volumes_:: {
-          config: kube.PersistentVolumeClaimVolume(pvc[0]),
-          data: kube.PersistentVolumeClaimVolume(pvc[1]),
-        } + {
-          ['secret-' + s.metadata.name]: kube.SecretVolume(s)
-          for s in secrets
-        },
+local k8up = inv.parameters.backup_k8up.global_backup_config;
+
+local schedule = [
+  assert std.member(inv.applications, 'backup-k8up') : 'Component backup-k8up is not available';
+  kube.Secret(appName + '-backup') {
+    metadata+: {
+      labels+: {
+        'app.kubernetes.io/instance': instanceName,
+        'app.kubernetes.io/managed-by': 'commodore',
+        'app.kubernetes.io/name': appName + '-backup',
       },
+      namespace: params.namespace.name,
+    },
+    stringData: {
+      password: params.backup.password,
+      accesskey: if params.backup.backend.accessKey == null then k8up.s3_credentials.accesskey else params.backup.backend.accessKey,
+      secretkey: if params.backup.backend.secretKey == null then k8up.s3_credentials.secretkey else params.backup.backend.secretKey,
     },
   },
-};
+  kube._Object('k8up.io/v1', 'Schedule', appName) {
+    metadata+: {
+      labels+: {
+        'app.kubernetes.io/instance': instanceName,
+        'app.kubernetes.io/managed-by': 'commodore',
+        'app.kubernetes.io/name': appName,
+      },
+      namespace: params.namespace.name,
+    },
+    spec+: {
+      podSecurityContext: {
+        runAsUser: 0,
+      },
+      backend: {
+        repoPasswordSecretRef: {
+          name: appName + '-backup',
+          key: 'password',
+        },
+        s3: {
+          endpoint: if params.backup.backend.endpoint == null then k8up.s3_endpoint else params.backup.backend.endpoint,
+          bucket: params.backup.bucket,
+          accessKeyIDSecretRef: {
+            name: appName + '-backup',
+            key: 'accesskey',
+          },
+          secretAccessKeySecretRef: {
+            name: appName + '-backup',
+            key: 'secretkey',
+          },
+        },
+      },
+      backup: {
+        schedule: params.backup.schedule,
+        failedJobsHistoryLimit: params.backup.keepFailed,
+        successfulJobsHistoryLimit: params.backup.keepSuccess,
+      },
+      [if params.backup.check.enabled then 'check']: {
+        schedule: params.backup.check.schedule,
+        failedJobsHistoryLimit: params.backup.keepFailed,
+        successfulJobsHistoryLimit: params.backup.keepSuccess,
+      },
+      [if params.backup.prune.enabled then 'prune']: {
+        schedule: params.backup.prune.schedule,
+        failedJobsHistoryLimit: params.backup.keepFailed,
+        successfulJobsHistoryLimit: params.backup.keepSuccess,
+        retention: params.backup.retention,
+      },
+    } + com.makeMergeable(params.backup.spec),
+  },
+];
+//   archive:
+//     schedule: '0 * * * *'
+//     restoreMethod:
+//       s3:
+//         endpoint: http://10.144.1.224:9000
+//         bucket: restoremini
+//         accessKeyIDSecretRef:
+//           name: backup-credentials
+//           key: username
+//         secretAccessKeySecretRef:
+//           name: backup-credentials
+//           key: password
 
 
 // Define outputs below
 {
   '00_namespace': if hasPrometheus then prom.RegisterNamespace(namespace) else namespace,
-  //   '10_pvc': pvc,
-  //   '10_deployment': deployment,
-  '20_secrets': secrets,
+  '20_secrets': secret,
+  [if params.backup.enabled then '30_backup']: schedule,
 }

@@ -45,12 +45,6 @@ parameters:
         source: https://charts.bitnami.com/bitnami
         version: 18.9.0
 
-    images:
-      kubectl:
-        registry: docker.io
-        repository: bitnami/kubectl
-        tag: v1.28.4
-
     resources:
       nextcloud:
         requests:
@@ -146,6 +140,28 @@ parameters:
         storageClass: ''
         size: 1Gi
 
+    backup:
+      enabled: true
+      schedule: '30 4 * * *'
+      bucket: my-backup-bucket
+      password: ?{vaultkv:${cluster:tenant}/${cluster:name}/nextcloud/${_instance}/backup}
+      keepFailed: 3
+      keepSuccess: 5
+      backend:
+        endpoint: null
+        accessKey: null
+        secretKey: null
+      check:
+        enabled: true
+        schedule: '30 8 * * *'
+      prune:
+        enabled: true
+        schedule: '30 13 * * *'
+      retention:
+        keepLast: 3
+        keepWeekly: 3
+      spec: {}
+
     helmValues:
       ##
       ## Helm values for postgresql
@@ -166,11 +182,20 @@ parameters:
         primary:
           resources: ${nextcloud:resources:postgresql}
           podAntiAffinityPreset: soft
+          podAnnotations:
+            k8up.io/backupcommand: sh -c 'PGDATABASE="$POSTGRES_DATABASE" PGUSER="$POSTGRES_USER" PGPASSWORD="$POSTGRES_PASSWORD" pg_dump --clean'
+            k8up.io/file-extension: .sql
           persistence:
             enabled: ${nextcloud:database:persistence:enabled}
             accessMode: ${nextcloud:database:persistence:accessMode}
             storageClass: ${nextcloud:database:persistence:storageClass}
             size: ${nextcloud:database:persistence:size}
+            annotations:
+              k8up.io/backup: 'false'
+        readReplicas:
+          persistence:
+            annotations:
+              k8up.io/backup: 'false'
         tls:
           enabled: false
         serviceAccount:
@@ -191,6 +216,8 @@ parameters:
             enabled: ${nextcloud:redis:persistence:enabled}
             accessMode: ${nextcloud:redis:persistence:accessMode}
             size: ${nextcloud:redis:persistence:size}
+            # annotations:
+            #   k8up.io/backup: false
           serviceAccount:
             create: false
         replica:
@@ -199,12 +226,16 @@ parameters:
             enabled: ${nextcloud:redis:persistence:enabled}
             accessMode: ${nextcloud:redis:persistence:accessMode}
             size: ${nextcloud:redis:persistence:size}
+            # annotations:
+            #   k8up.io/backup: false
           podAntiAffinityPreset: hard
         sentinel:
           enabled: ${nextcloud:_config:redis:${nextcloud:redis:mode}:sentinel}
           resources: ${nextcloud:resources:redis}
           persistence:
             enabled: ${nextcloud:redis:persistence:enabled}
+            # annotations:
+            #   k8up.io/backup: false
         pdb:
           create: ${nextcloud:_config:redis:${nextcloud:redis:mode}:pdb}
           minAvailable: ""
@@ -262,55 +293,5 @@ parameters:
           accessMode: ${nextcloud:config:persistence:accessMode}
           storageClass: ${nextcloud:config:persistence:storageClass}
           size: ${nextcloud:config:persistence:size}
-
-
-## Redis Cluster Configs, maybe...
-        #   phpConfigs:
-        #     redis-cluster.ini: |-
-        #       session.save_handler = rediscluster
-        #       session.save_path = "seed[]=redis-cluster-endpoint&timeout=2&read_timeout=2&failover=error&persistent=1&auth[user]=redis-user&auth[pass]=redis-password"
-          # configs:
-          #   redis-cluster.config.php: |-
-          #     <?php
-          #     $CONFIG = [
-          #       'memcache.local' => '\OC\Memcache\APCu',
-          #       'memcache.distributed' => '\\OC\\Memcache\\Redis',
-          #       'memcache.locking' => '\\OC\\Memcache\\Redis',
-          #       'redis' => [
-          #         'host' => 'redis-headless',
-          #         'port' => 6379,
-          #       ],
-          #     ];
-
-            # redis-cluster.config.php: |-
-            #   <?php
-            #   $CONFIG = [
-            #     'memcache.local' => '\OC\Memcache\APCu',
-            #     'memcache.distributed' => '\\OC\\Memcache\\Redis',
-            #     'memcache.locking' => '\\OC\\Memcache\\Redis',
-            #     'redis.cluster' => [
-            #       'seeds' => [
-            #         'redis-node-0.redis-headless.svc',
-            #         'redis-node-1.redis-headless.svc',
-            #         'redis-node-2.redis-headless.svc',
-            #       ],
-            #     ],
-            #   ];
-
-            # redis-cluster.config.php: |-
-            #   <?php
-            #   $CONFIG = [
-            #     'memcache.distributed' => '\\OC\\Memcache\\Redis',
-            #     'memcache.locking' => '\\OC\\Memcache\\Redis',
-            #     'redis.cluster' => [
-            #       'seeds' => [
-            #         'redis-cluster-endpoint',
-            #       ],
-            #       'timeout' => 0.0,
-            #       'read_timeout' => 0.0,
-            #       'failover_mode' => \RedisCluster::FAILOVER_ERROR,
-            #       'user' => 'redis-user',
-            #       'password' => 'redis-password'
-            #     ],
-            #   ];
-#ALTER DATABASE nextcloud SET serial_normalization = virtual_sequence
+          # annotations:
+          #   k8up.io/backup: false

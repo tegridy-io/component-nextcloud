@@ -68,3 +68,9 @@ parameters:
           name: nextcloud
           namespace: ${nextcloud:namespace:name}
           dependency_update: false
+  # commodore:
+  #   postprocess:
+  #     filters:
+  #       - type: jsonnet
+  #         path: ${_instance}//10_helmchart/
+  #         filter: postprocess/patch_pvc.jsonnet
