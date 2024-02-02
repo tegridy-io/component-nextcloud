@@ -6,7 +6,7 @@ metadata:
     app.kubernetes.io/instance: nextcloud
     app.kubernetes.io/managed-by: commodore
     app.kubernetes.io/name: nextcloud
-    helm.sh/chart: nextcloud-4.5.12
+    helm.sh/chart: nextcloud-4.5.13
   name: nextcloud
 spec:
   replicas: 1
@@ -67,7 +67,7 @@ spec:
                 secretKeyRef:
                   key: redis-password
                   name: nextcloud
-          image: nextcloud:28.0.1-fpm-alpine
+          image: nextcloud:28.0.2-fpm-alpine
           imagePullPolicy: IfNotPresent
           name: nextcloud
           resources:
@@ -228,7 +228,7 @@ spec:
                 secretKeyRef:
                   key: redis-password
                   name: nextcloud
-          image: nextcloud:28.0.1-fpm-alpine
+          image: nextcloud:28.0.2-fpm-alpine
           imagePullPolicy: IfNotPresent
           name: nextcloud-cron
           resources:
