@@ -3,6 +3,7 @@ kind: Ingress
 metadata:
   annotations:
     cert-manager.io/cluster-issuer: letsencrypt-production
+    nginx.ingress.kubernetes.io/proxy-body-size: 4G
   labels:
     app.kubernetes.io/component: app
     app.kubernetes.io/instance: nextcloud
