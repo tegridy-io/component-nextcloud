@@ -40,7 +40,7 @@ parameters:
         version: 4.5.13
       postgresql:
         source: https://charts.bitnami.com/bitnami
-        version: 13.4.2
+        version: 14.0.1
       redis:
         source: https://charts.bitnami.com/bitnami
         version: 18.12.1
@@ -192,10 +192,14 @@ parameters:
             size: ${nextcloud:database:persistence:size}
             annotations:
               k8up.io/backup: 'false'
+          networkPolicy:
+            enabled: false
         readReplicas:
           persistence:
             annotations:
               k8up.io/backup: 'false'
+          networkPolicy:
+            enabled: false
         tls:
           enabled: false
         serviceAccount:
