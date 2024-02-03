@@ -101,6 +101,6 @@ metadata:
     app.kubernetes.io/managed-by: commodore
     app.kubernetes.io/name: redis
     app.kubernetes.io/version: 7.2.4
-    helm.sh/chart: redis-18.9.0
+    helm.sh/chart: redis-18.12.1
   name: redis-health
   namespace: app-instances
