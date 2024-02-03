@@ -7,7 +7,7 @@ metadata:
     app.kubernetes.io/managed-by: commodore
     app.kubernetes.io/name: redis
     app.kubernetes.io/version: 7.2.4
-    helm.sh/chart: redis-18.9.0
+    helm.sh/chart: redis-18.12.1
   name: redis-master
   namespace: app-instances
 spec:
@@ -31,7 +31,7 @@ spec:
         app.kubernetes.io/managed-by: commodore
         app.kubernetes.io/name: redis
         app.kubernetes.io/version: 7.2.4
-        helm.sh/chart: redis-18.9.0
+        helm.sh/chart: redis-18.12.1
     spec:
       affinity:
         nodeAffinity: null
@@ -69,7 +69,7 @@ spec:
               value: 'no'
             - name: REDIS_PORT
               value: '6379'
-          image: docker.io/bitnami/redis:7.2.4-debian-11-r2
+          image: docker.io/bitnami/redis:7.2.4-debian-11-r5
           imagePullPolicy: IfNotPresent
           livenessProbe:
             exec:
