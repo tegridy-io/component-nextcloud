@@ -179,9 +179,51 @@ NOTE: Currently only standalone mode supported!
 
 [horizontal]
 type:: dictionary
-default:: https://github.com/tegridy-io/component-nextcloud/blob/master/class/defaults.yml[See `class/defaults.yml`]
+default:: https://github.com/tegridy-io/component-nextcloud/blob/master/class/defaults.yml[See component defaults]
 
 The Helm values to use when rendering the Helm charts.
+
+
+== `backup`
+
+[horizontal]
+type:: dictionary
+default::
++
+[source,yaml]
+----
+enabled: true <1>
+schedule: '30 4 * * *' <2>
+bucket: my-backup-bucket <3>
+password: ?{vaultkv:${cluster:tenant}/${cluster:name}/nextcloud/${_instance}/backup} <4>
+keepFailed: 3
+keepSuccess: 5
+backend: <5>
+  endpoint: null
+  accessKey: null
+  secretKey: null
+check: <6>
+  enabled: true
+  schedule: '30 8 * * *'
+prune: <7>
+  enabled: true
+  schedule: '30 13 * * *'
+retention: <8>
+  keepLast: 3
+  keepWeekly: 3
+spec: {} <9>
+----
+<1> Enable backup.
+<2> Backup schedule.
+<3> Bucket name to use for backups.
+<4> Password K8up/restic uses to encrypt data.
+<5> Configure s3 backend.
+<6> Enable/Configure checking backups.
+<7> Enable/Configure prune backups.
+<8> Configure retention (prune needs to be enabled), https://k8up.io/k8up/references/object-specifications.html#_retention[see K8up retention spec].
+<9> Additional specifications, https://k8up.io/k8up/references/object-specifications.html[see K8up object spec].
+
+Configure backups, using https://k8up.io[K8up operator].
 
 
 == Example

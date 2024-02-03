@@ -1,4 +1,5 @@
 applications:
+  - backup-k8up
   - cockroach-operator
   - redis-operator
   - prometheus
@@ -40,3 +41,10 @@ parameters:
 
   prometheus:
     defaultInstance: system
+
+  backup_k8up:
+    global_backup_config:
+      s3_credentials:
+        accesskey: my-global-access-key
+        secretkey: my-global-secret-key
+      s3_endpoint: my-global-endpoint
