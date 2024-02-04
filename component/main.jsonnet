@@ -11,11 +11,10 @@ local appName = 'nextcloud';
 local hasPrometheus = std.member(inv.applications, 'prometheus');
 
 local namespace = kube.Namespace(params.namespace.name) {
-  //   metadata+: {
-  //     labels+: {
-  //       'pod-security.kubernetes.io/enforce': 'restricted',
-  //     },
-  //   },
+  metadata+: {
+    annotations+: params.namespace.annotations,
+    labels+: params.namespace.labels,
+  },
 };
 
 
