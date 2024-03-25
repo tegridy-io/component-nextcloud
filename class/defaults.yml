@@ -40,10 +40,10 @@ parameters:
         version: 4.5.13
       postgresql:
         source: https://charts.bitnami.com/bitnami
-        version: 14.0.1
+        version: 15.1.4
       redis:
         source: https://charts.bitnami.com/bitnami
-        version: 18.12.1
+        version: 19.0.1
 
     resources:
       nextcloud:
