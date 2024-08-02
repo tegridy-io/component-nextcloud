@@ -194,6 +194,8 @@ parameters:
               k8up.io/backup: 'false'
           networkPolicy:
             enabled: false
+          pdb:
+            create: false
         readReplicas:
           persistence:
             annotations:
