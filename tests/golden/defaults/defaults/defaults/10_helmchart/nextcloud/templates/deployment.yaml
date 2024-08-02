@@ -6,7 +6,7 @@ metadata:
     app.kubernetes.io/instance: nextcloud
     app.kubernetes.io/managed-by: commodore
     app.kubernetes.io/name: nextcloud
-    helm.sh/chart: nextcloud-4.5.13
+    helm.sh/chart: nextcloud-5.5.2
   name: nextcloud
 spec:
   replicas: 1
@@ -20,7 +20,8 @@ spec:
   template:
     metadata:
       annotations:
-        nextcloud-config-hash: 1cb4ff4a2fc8d16be0438a3478ffc5ce01dc86c9b4fbcc590884b5373976decf
+        hooks-hash: 9525c2748a6c7cd0e28ec740623d0b3fa5a75c83b51ccfd136bc89c76737b204
+        nextcloud-config-hash: 7d1514661bbed0f4ae4dd259f67b168d24f76788138bf25fa2f2753b09db94f2
         nginx-config-hash: 18dd8f905a93ed27f032e9ae68084222ed7e5926f7144cda17b979780f4da54b
         php-config-hash: 44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a
       labels:
@@ -67,7 +68,7 @@ spec:
                 secretKeyRef:
                   key: redis-password
                   name: nextcloud
-          image: nextcloud:28.0.2-fpm-alpine
+          image: nextcloud:29.0.4-fpm-alpine
           imagePullPolicy: IfNotPresent
           name: nextcloud
           resources:
@@ -123,9 +124,21 @@ spec:
             - mountPath: /var/www/html/config/redis.config.php
               name: nextcloud-config
               subPath: redis.config.php
+            - mountPath: /var/www/html/config/reverse-proxy.config.php
+              name: nextcloud-config
+              subPath: reverse-proxy.config.php
+            - mountPath: /var/www/html/config/s3.config.php
+              name: nextcloud-config
+              subPath: s3.config.php
             - mountPath: /var/www/html/config/smtp.config.php
               name: nextcloud-config
               subPath: smtp.config.php
+            - mountPath: /var/www/html/config/swift.config.php
+              name: nextcloud-config
+              subPath: swift.config.php
+            - mountPath: /var/www/html/config/upgrade-disable-web.config.php
+              name: nextcloud-config
+              subPath: upgrade-disable-web.config.php
         - image: nginx:alpine
           imagePullPolicy: IfNotPresent
           livenessProbe:
@@ -228,7 +241,7 @@ spec:
                 secretKeyRef:
                   key: redis-password
                   name: nextcloud
-          image: nextcloud:28.0.2-fpm-alpine
+          image: nextcloud:29.0.4-fpm-alpine
           imagePullPolicy: IfNotPresent
           name: nextcloud-cron
           resources:
@@ -284,9 +297,21 @@ spec:
             - mountPath: /var/www/html/config/redis.config.php
               name: nextcloud-config
               subPath: redis.config.php
+            - mountPath: /var/www/html/config/reverse-proxy.config.php
+              name: nextcloud-config
+              subPath: reverse-proxy.config.php
+            - mountPath: /var/www/html/config/s3.config.php
+              name: nextcloud-config
+              subPath: s3.config.php
             - mountPath: /var/www/html/config/smtp.config.php
               name: nextcloud-config
               subPath: smtp.config.php
+            - mountPath: /var/www/html/config/swift.config.php
+              name: nextcloud-config
+              subPath: swift.config.php
+            - mountPath: /var/www/html/config/upgrade-disable-web.config.php
+              name: nextcloud-config
+              subPath: upgrade-disable-web.config.php
       securityContext:
         fsGroup: 82
       volumes:

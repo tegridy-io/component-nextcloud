@@ -6,8 +6,8 @@ metadata:
     app.kubernetes.io/instance: postgresql
     app.kubernetes.io/managed-by: commodore
     app.kubernetes.io/name: postgresql
-    app.kubernetes.io/version: 16.1.0
-    helm.sh/chart: postgresql-14.0.1
+    app.kubernetes.io/version: 16.3.0
+    helm.sh/chart: postgresql-15.5.20
   name: postgresql
   namespace: app-instances
 spec:
@@ -29,8 +29,8 @@ spec:
         app.kubernetes.io/instance: postgresql
         app.kubernetes.io/managed-by: commodore
         app.kubernetes.io/name: postgresql
-        app.kubernetes.io/version: 16.1.0
-        helm.sh/chart: postgresql-14.0.1
+        app.kubernetes.io/version: 16.3.0
+        helm.sh/chart: postgresql-15.5.20
       name: postgresql
     spec:
       affinity:
@@ -82,7 +82,7 @@ spec:
               value: error
             - name: POSTGRESQL_SHARED_PRELOAD_LIBRARIES
               value: pgaudit
-          image: docker.io/bitnami/postgresql:16.1.0-debian-11-r26
+          image: docker.io/bitnami/postgresql:16.3.0-debian-12-r23
           imagePullPolicy: IfNotPresent
           livenessProbe:
             exec:
@@ -127,13 +127,23 @@ spec:
               drop:
                 - ALL
             privileged: false
-            readOnlyRootFilesystem: false
+            readOnlyRootFilesystem: true
+            runAsGroup: 1001
             runAsNonRoot: true
             runAsUser: 1001
-            seLinuxOptions: null
+            seLinuxOptions: {}
             seccompProfile:
               type: RuntimeDefault
           volumeMounts:
+            - mountPath: /tmp
+              name: empty-dir
+              subPath: tmp-dir
+            - mountPath: /opt/bitnami/postgresql/conf
+              name: empty-dir
+              subPath: app-conf-dir
+            - mountPath: /opt/bitnami/postgresql/tmp
+              name: empty-dir
+              subPath: app-tmp-dir
             - mountPath: /dev/shm
               name: dshm
             - mountPath: /bitnami/postgresql
@@ -147,6 +157,8 @@ spec:
         sysctls: []
       serviceAccountName: default
       volumes:
+        - emptyDir: {}
+          name: empty-dir
         - emptyDir:
             medium: Memory
           name: dshm
