@@ -40,7 +40,7 @@ parameters:
         version: 5.5.2
       postgresql:
         source: https://charts.bitnami.com/bitnami
-        version: 15.5.20
+        version: 15.5.21
       redis:
         source: https://charts.bitnami.com/bitnami
         version: 19.6.4
