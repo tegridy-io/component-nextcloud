@@ -43,7 +43,7 @@ parameters:
         version: 15.5.20
       redis:
         source: https://charts.bitnami.com/bitnami
-        version: 19.6.4
+        version: 20.0.1
 
     resources:
       nextcloud:
