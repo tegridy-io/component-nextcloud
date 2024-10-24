@@ -1,90 +1,150 @@
 apiVersion: v1
 data:
-  default.conf: "upstream php-handler {\n    server 127.0.0.1:9000;\n}\n\nserver {\n\
-    \    listen 80;\n\n    # HSTS settings\n    # WARNING: Only add the preload option\
-    \ once you read about\n    # the consequences in https://hstspreload.org/. This\
-    \ option\n    # will add the domain to a hardcoded list that is shipped\n    #\
-    \ in all major browsers and getting removed from this list\n    # could take several\
-    \ months.\n    #add_header Strict-Transport-Security \"max-age=15768000; includeSubDomains;\
-    \ preload;\" always;\n\n    # set max upload size\n    client_max_body_size 10G;\n\
-    \    fastcgi_buffers 64 4K;\n\n    # Enable gzip but do not remove ETag headers\n\
-    \    gzip on;\n    gzip_vary on;\n    gzip_comp_level 4;\n    gzip_min_length\
-    \ 256;\n    gzip_proxied expired no-cache no-store private no_last_modified no_etag\
-    \ auth;\n    gzip_types application/atom+xml application/javascript application/json\
-    \ application/ld+json application/manifest+json application/rss+xml application/vnd.geo+json\
-    \ application/vnd.ms-fontobject application/x-font-ttf application/x-web-app-manifest+json\
-    \ application/xhtml+xml application/xml font/opentype image/bmp image/svg+xml\
-    \ image/x-icon text/cache-manifest text/css text/plain text/vcard text/vnd.rim.location.xloc\
-    \ text/vtt text/x-component text/x-cross-domain-policy;\n\n    # Pagespeed is\
-    \ not supported by Nextcloud, so if your server is built\n    # with the `ngx_pagespeed`\
-    \ module, uncomment this line to disable it.\n    #pagespeed off;\n\n    # HTTP\
-    \ response headers borrowed from Nextcloud `.htaccess`\n    add_header Referrer-Policy\
-    \                      \"no-referrer\"       always;\n    add_header X-Content-Type-Options\
-    \               \"nosniff\"           always;\n    add_header X-Download-Options\
-    \                   \"noopen\"            always;\n    add_header X-Frame-Options\
-    \                      \"SAMEORIGIN\"        always;\n    add_header X-Permitted-Cross-Domain-Policies\
-    \    \"none\"              always;\n    add_header X-Robots-Tag              \
-    \           \"noindex, nofollow\" always;\n    add_header X-XSS-Protection   \
-    \                  \"1; mode=block\"     always;\n\n    # Remove X-Powered-By,\
-    \ which is an information leak\n    fastcgi_hide_header X-Powered-By;\n\n    #\
-    \ Add .mjs as a file extension for javascript\n    # Either include it in the\
-    \ default mime.types list\n    # or include you can include that list explicitly\
-    \ and add the file extension\n    # only for Nextcloud like below:\n    include\
-    \ mime.types;\n    types {\n        text/javascript js mjs;\n    }        \n\n\
-    \    # Path to the root of your installation\n    root /var/www/html;\n\n    #\
-    \ Specify how to handle directories -- specifying `/index.php$request_uri`\n \
-    \   # here as the fallback means that Nginx always exhibits the desired behaviour\n\
-    \    # when a client requests a path that corresponds to a directory that exists\n\
-    \    # on the server. In particular, if that directory contains an index.php file,\n\
-    \    # that file is correctly served; if it doesn't, then the request is passed\
-    \ to\n    # the front-end controller. This consistent behaviour means that we\
-    \ don't need\n    # to specify custom rules for certain paths (e.g. images and\
-    \ other assets,\n    # `/updater`, `/ocm-provider`, `/ocs-provider`), and thus\n\
-    \    # `try_files $uri $uri/ /index.php$request_uri`\n    # always provides the\
-    \ desired behaviour.\n    index index.php index.html /index.php$request_uri;\n\
-    \n    # Rule borrowed from `.htaccess` to handle Microsoft DAV clients\n    location\
-    \ = / {\n        if ( $http_user_agent ~ ^DavClnt ) {\n            return 302\
-    \ /remote.php/webdav/$is_args$args;\n        }\n    }\n\n    location = /robots.txt\
-    \ {\n        allow all;\n        log_not_found off;\n        access_log off;\n\
-    \    }\n\n    # Make a regex exception for `/.well-known` so that clients can\
-    \ still\n    # access it despite the existence of the regex rule\n    # `location\
-    \ ~ /(\\.|autotest|...)` which would otherwise handle requests\n    # for `/.well-known`.\n\
-    \    location ^~ /.well-known {\n        # The following 6 rules are borrowed\
-    \ from `.htaccess`\n\n        location = /.well-known/carddav     { return 301\
-    \ /remote.php/dav/; }\n        location = /.well-known/caldav      { return 301\
-    \ /remote.php/dav/; }\n        # Anything else is dynamically handled by Nextcloud\n\
-    \        location ^~ /.well-known            { return 301 /index.php$uri; }\n\n\
-    \        try_files $uri $uri/ =404;\n    }\n\n    # Rules borrowed from `.htaccess`\
-    \ to hide certain paths from clients\n    location ~ ^/(?:build|tests|config|lib|3rdparty|templates|data)(?:$|/)\
-    \  { return 404; }\n    location ~ ^/(?:\\.|autotest|occ|issue|indie|db_|console)\
-    \              { return 404; }\n\n    # Ensure this block, which passes PHP files\
-    \ to the PHP process, is above the blocks\n    # which handle static assets (as\
-    \ seen below). If this block is not declared first,\n    # then Nginx will encounter\
-    \ an infinite rewriting loop when it prepends `/index.php`\n    # to the URI,\
-    \ resulting in a HTTP 500 error response.\n    location ~ \\.php(?:$|/) {\n  \
-    \      # Required for legacy support\n        rewrite ^/(?!index|remote|public|cron|core\\\
-    /ajax\\/update|status|ocs\\/v[12]|updater\\/.+|oc[ms]-provider\\/.+|.+\\/richdocumentscode(_arm64)?\\\
-    /proxy) /index.php$request_uri;\n\n        fastcgi_split_path_info ^(.+?\\.php)(/.*)$;\n\
-    \        set $path_info $fastcgi_path_info;\n\n        try_files $fastcgi_script_name\
-    \ =404;\n\n        include fastcgi_params;\n        fastcgi_param SCRIPT_FILENAME\
-    \ $document_root$fastcgi_script_name;\n        fastcgi_param PATH_INFO $path_info;\n\
-    \        #fastcgi_param HTTPS on;\n\n        fastcgi_param modHeadersAvailable\
-    \ true;         # Avoid sending the security headers twice\n        fastcgi_param\
-    \ front_controller_active true;     # Enable pretty urls\n        fastcgi_pass\
-    \ php-handler;\n\n        fastcgi_intercept_errors on;\n        fastcgi_request_buffering\
-    \ off;\n    }\n\n    location ~ \\.(?:css|js|svg|gif)$ {\n        try_files $uri\
-    \ /index.php$request_uri;\n        expires 6M;         # Cache-Control policy\
-    \ borrowed from `.htaccess`\n        access_log off;     # Optional: Don't log\
-    \ access to assets\n    }\n\n    location ~ \\.woff2?$ {\n        try_files $uri\
-    \ /index.php$request_uri;\n        expires 7d;         # Cache-Control policy\
-    \ borrowed from `.htaccess`\n        access_log off;     # Optional: Don't log\
-    \ access to assets\n    }\n\n    location / {\n        try_files $uri $uri/ /index.php$request_uri;\n\
-    \    }\n}"
+  default.conf: |-
+    upstream php-handler {
+        server 127.0.0.1:9000;
+    }
+
+    server {
+        # Default, IPv4 only
+        listen 80;
+
+        # HSTS settings
+        # WARNING: Only add the preload option once you read about
+        # the consequences in https://hstspreload.org/. This option
+        # will add the domain to a hardcoded list that is shipped
+        # in all major browsers and getting removed from this list
+        # could take several months.
+        add_header Referrer-Policy "no-referrer" always;
+        add_header X-Content-Type-Options "nosniff" always;
+        add_header X-Download-Options "noopen" always;
+        add_header X-Frame-Options "SAMEORIGIN" always;
+        add_header X-Permitted-Cross-Domain-Policies "none" always;
+        add_header X-Robots-Tag "noindex, nofollow" always;
+        add_header X-XSS-Protection "1; mode=block" always;
+
+        # set max upload size
+        client_max_body_size 10G;
+        fastcgi_buffers 64 4K;
+
+        # Enable gzip but do not remove ETag headers
+        gzip on;
+        gzip_vary on;
+        gzip_comp_level 4;
+        gzip_min_length 256;
+        gzip_proxied expired no-cache no-store private no_last_modified no_etag auth;
+        gzip_types application/atom+xml application/javascript application/json application/ld+json application/manifest+json application/rss+xml application/vnd.geo+json application/vnd.ms-fontobject application/x-font-ttf application/x-web-app-manifest+json application/xhtml+xml application/xml font/opentype image/bmp image/svg+xml image/x-icon text/cache-manifest text/css text/plain text/vcard text/vnd.rim.location.xloc text/vtt text/x-component text/x-cross-domain-policy;
+
+        # Pagespeed is not supported by Nextcloud, so if your server is built
+        # with the `ngx_pagespeed` module, uncomment this line to disable it.
+        #pagespeed off;
+
+        # Remove X-Powered-By, which is an information leak
+        fastcgi_hide_header X-Powered-By;
+
+        # Add .mjs as a file extension for javascript
+        # Either include it in the default mime.types list
+        # or include you can include that list explicitly and add the file extension
+        # only for Nextcloud like below:
+        include mime.types;
+        types {
+            text/javascript js mjs;
+        }
+
+        # Path to the root of your installation
+        root /var/www/html;
+
+        # Specify how to handle directories -- specifying `/index.php$request_uri`
+        # here as the fallback means that Nginx always exhibits the desired behaviour
+        # when a client requests a path that corresponds to a directory that exists
+        # on the server. In particular, if that directory contains an index.php file,
+        # that file is correctly served; if it doesn't, then the request is passed to
+        # the front-end controller. This consistent behaviour means that we don't need
+        # to specify custom rules for certain paths (e.g. images and other assets,
+        # `/updater`, `/ocm-provider`, `/ocs-provider`), and thus
+        # `try_files $uri $uri/ /index.php$request_uri`
+        # always provides the desired behaviour.
+        index index.php index.html /index.php$request_uri;
+
+        # Rule borrowed from `.htaccess` to handle Microsoft DAV clients
+        location = / {
+            if ( $http_user_agent ~ ^DavClnt ) {
+                return 302 /remote.php/webdav/$is_args$args;
+            }
+        }
+
+        location = /robots.txt {
+            allow all;
+            log_not_found off;
+            access_log off;
+        }
+
+        # Make a regex exception for `/.well-known` so that clients can still
+        # access it despite the existence of the regex rule
+        # `location ~ /(\.|autotest|...)` which would otherwise handle requests
+        # for `/.well-known`.
+        location ^~ /.well-known {
+            # The following 6 rules are borrowed from `.htaccess`
+
+            location = /.well-known/carddav     { return 301 /remote.php/dav/; }
+            location = /.well-known/caldav      { return 301 /remote.php/dav/; }
+            # Anything else is dynamically handled by Nextcloud
+            location ^~ /.well-known            { return 301 /index.php$uri; }
+
+            try_files $uri $uri/ =404;
+        }
+
+        # Rules borrowed from `.htaccess` to hide certain paths from clients
+        location ~ ^/(?:build|tests|config|lib|3rdparty|templates|data)(?:$|/)  { return 404; }
+        location ~ ^/(?:\.|autotest|occ|issue|indie|db_|console)              { return 404; }
+
+        # Ensure this block, which passes PHP files to the PHP process, is above the blocks
+        # which handle static assets (as seen below). If this block is not declared first,
+        # then Nginx will encounter an infinite rewriting loop when it prepends `/index.php`
+        # to the URI, resulting in a HTTP 500 error response.
+        location ~ \.php(?:$|/) {
+            # Required for legacy support
+            rewrite ^/(?!index|remote|public|cron|core\/ajax\/update|status|ocs\/v[12]|updater\/.+|oc[ms]-provider\/.+|.+\/richdocumentscode(_arm64)?\/proxy) /index.php$request_uri;
+
+            fastcgi_split_path_info ^(.+?\.php)(/.*)$;
+            set $path_info $fastcgi_path_info;
+
+            try_files $fastcgi_script_name =404;
+
+            include fastcgi_params;
+            fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
+            fastcgi_param PATH_INFO $path_info;
+            #fastcgi_param HTTPS on;
+
+            fastcgi_param modHeadersAvailable true;         # Avoid sending the security headers twice
+            fastcgi_param front_controller_active true;     # Enable pretty urls
+            fastcgi_pass php-handler;
+
+            fastcgi_intercept_errors on;
+            fastcgi_request_buffering off;
+        }
+
+        location ~ \.(?:css|js|svg|gif)$ {
+            try_files $uri /index.php$request_uri;
+            expires 6M;         # Cache-Control policy borrowed from `.htaccess`
+            access_log off;     # Optional: Don't log access to assets
+        }
+
+        location ~ \.woff2?$ {
+            try_files $uri /index.php$request_uri;
+            expires 7d;         # Cache-Control policy borrowed from `.htaccess`
+            access_log off;     # Optional: Don't log access to assets
+        }
+
+        location / {
+            try_files $uri $uri/ /index.php$request_uri;
+        }
+    }
 kind: ConfigMap
 metadata:
   labels:
     app.kubernetes.io/instance: nextcloud
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/name: nextcloud
-    helm.sh/chart: nextcloud-5.5.2
+    helm.sh/chart: nextcloud-6.2.1
   name: nextcloud-nginxconfig
