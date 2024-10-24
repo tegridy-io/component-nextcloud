@@ -6,8 +6,8 @@ metadata:
     app.kubernetes.io/instance: postgresql
     app.kubernetes.io/managed-by: commodore
     app.kubernetes.io/name: postgresql
-    app.kubernetes.io/version: 16.3.0
-    helm.sh/chart: postgresql-15.5.20
+    app.kubernetes.io/version: 17.0.0
+    helm.sh/chart: postgresql-16.0.6
   name: postgresql
   namespace: app-defaults
 spec:
@@ -29,8 +29,8 @@ spec:
         app.kubernetes.io/instance: postgresql
         app.kubernetes.io/managed-by: commodore
         app.kubernetes.io/name: postgresql
-        app.kubernetes.io/version: 16.3.0
-        helm.sh/chart: postgresql-15.5.20
+        app.kubernetes.io/version: 17.0.0
+        helm.sh/chart: postgresql-16.0.6
       name: postgresql
     spec:
       affinity:
@@ -82,7 +82,7 @@ spec:
               value: error
             - name: POSTGRESQL_SHARED_PRELOAD_LIBRARIES
               value: pgaudit
-          image: docker.io/bitnami/postgresql:16.3.0-debian-12-r23
+          image: docker.io/bitnami/postgresql:17.0.0-debian-12-r9
           imagePullPolicy: IfNotPresent
           livenessProbe:
             exec:
