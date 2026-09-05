@@ -37,13 +37,13 @@ parameters:
     charts:
       nextcloud:
         source: https://nextcloud.github.io/helm
-        version: 5.5.2
+        version: 9.2.6
       postgresql:
         source: https://charts.bitnami.com/bitnami
-        version: 15.5.20
+        version: 18.8.17
       redis:
         source: https://charts.bitnami.com/bitnami
-        version: 19.6.4
+        version: 28.0.15
 
     resources:
       nextcloud:
